@@ -1,48 +1,45 @@
-name: 全自动下载更新go-cqhttp | 永久登录 | 管理员2466363558
+name: 全自动更新go-cqhttp+永久登录
 on:
   schedule:
-    - cron: "0 0 * * *"    # 每天凌晨自动更新到最新版
-  workflow_dispatch:        # 浏览器手动点一下，立即更新/下载
+    - cron: "0 0 * * *"  # 每日凌晨自动更新
+  workflow_dispatch:      # 支持手动触发
   push:
-    branches: [ main ]     # 修改代码后自动触发更新
+    branches: [ main ]    # 提交代码自动同步
 
 jobs:
   auto_update:
     runs-on: ubuntu-latest
     steps:
-      - name: 拉取仓库所有文件
+      - name: 拉取仓库文件
         uses: actions/checkout@v4
 
-      - name: 自动创建binaries文件夹
-        run: mkdir -p binaries
+      - name: 创建必要目录
+        run: mkdir -p binaries paycode  # 同时创建binaries和paycode文件夹
 
-      - name: ✅ 全自动下载最新版go-cqhttp(小米99%机型适配 arm64)
+      - name: 下载最新版go-cqhttp（小米arm64机型）
         run: |
-          wget -q --show-progress https://github.com/Mrs4s/go-cqhttp/releases/latest/download/go-cqhttp_linux_arm64.tar.gz -O ./binaries/go.tar.gz
+          wget -q https://github.com/Mrs4s/go-cqhttp/releases/latest/download/go-cqhttp_linux_arm64.tar.gz -O ./binaries/go.tar.gz
           tar -zxvf ./binaries/go.tar.gz -C ./binaries --strip-components=1
-          rm -rf ./binaries/go.tar.gz
+          rm ./binaries/go.tar.gz
           chmod +x ./binaries/go-cqhttp
-          echo "✅ 最新版go-cqhttp下载完成，赋予运行权限"
 
-      - name: ✅ 备份永久登录核心文件【一次扫码，永不重扫】
+      - name: 备份登录凭证（一次扫码永久生效）
         run: |
           cp -f ./binaries/config.yml ./binaries/config_bak.yml 2>/dev/null
           cp -f ./binaries/device.json ./binaries/device_bak.json 2>/dev/null
           cp -f ./binaries/session.token ./binaries/session_bak.token 2>/dev/null
-          cp -f ./binaries/client_secret.json ./binaries/client_secret_bak.json 2>/dev/null
 
-      - name: ✅ 恢复永久登录文件【更新后直接登录，无需扫码】
+      - name: 恢复登录凭证
         run: |
           cp -f ./binaries/config_bak.yml ./binaries/config.yml 2>/dev/null
           cp -f ./binaries/device_bak.json ./binaries/device.json 2>/dev/null
           cp -f ./binaries/session_bak.token ./binaries/session.token 2>/dev/null
-          cp -f ./binaries/client_secret_bak.json ./binaries/client_secret.json 2>/dev/null
-          rm -rf ./binaries/config_bak.yml ./binaries/device_bak.json ./binaries/session_bak.token ./binaries/client_secret_bak.json
+          rm -rf ./binaries/*_bak.*
 
-      - name: ✅ 自动保存所有文件到仓库
+      - name: 同步仓库所有文件
         run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.email "actions@github.com"
           git config --local user.name "GitHub Actions Bot"
-          git add ./binaries/* ./plugins/* ./main.py
-          git commit -m "✅ 自动更新最新版go-cqhttp+加载所有功能+保留2466363558登录状态" -a || echo "已是最新版本，无需更新"
+          git add ./binaries/* ./plugins/* ./paycode/* ./main.py  # 包含paycode文件夹
+          git commit -m "自动更新go-cqhttp+同步所有功能文件" -a || echo "无需更新"
           git push origin main
