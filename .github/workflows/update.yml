@@ -1,0 +1,38 @@
+name: Auto-update go-cqhttp
+on:
+  schedule:
+    - cron: "0 0 * * *"  # 每天00:00自动运行
+  workflow_dispatch:  # 也支持手动触发
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download latest go-cqhttp
+        run: |
+          mkdir -p ./binaries
+          # 根据手机架构选择下载（小米旗舰用arm64，较老机型用armv7）
+          wget -q --show-progress https://github.com/Mrs4s/go-cqhttp/releases/latest/download/go-cqhttp_linux_arm64.tar.gz -O ./binaries/latest.tar.gz
+          tar -zxvf ./binaries/latest.tar.gz -C ./binaries --strip-components=1
+          rm ./binaries/latest.tar.gz
+
+      - name: Save config files
+        run: |
+          # 备份配置文件（保留登录状态）
+          cp -f ./binaries/config.yml ./binaries/config_backup.yml 2>/dev/null
+          cp -f ./binaries/device.json ./binaries/device_backup.json 2>/dev/null
+
+      - name: Cleanup old files
+        run: |
+          find ./binaries -type f ! -name "go-cqhttp" ! -name "config.yml" ! -name "device.json" ! -name "config_backup.yml" ! -name "device_backup.json" -delete
+
+      - name: Commit and push updates
+        run: |
+          git config --local user.email "actions@github.com"
+          git config --local user.name "GitHub Actions"
+          git add .
+          git commit -m "Update go-cqhttp to latest version"
+          git push origin main
