@@ -1,58 +1,44 @@
-name: 全自动更新+永久登录
+name: 红米专属-全自动下载安装运行机器人
 on:
-  schedule:
-    - cron: "0 0 * * *"
   workflow_dispatch:
   push:
     branches: [ main ]
 jobs:
-  auto_update:
+  auto_install:
     runs-on: ubuntu-latest
     steps:
-      - name: 拉取仓库文件
+      - name: 拉取仓库所有文件
         uses: actions/checkout@v4
-      - name: 创建必要目录
-        run: mkdir -p binaries paycode plugins
-      - name: 下载go-cqhttp（ARM64架构，适配红米Note15 Pro+）
+        
+      - name: 自动创建所有需要的文件夹
+        run: mkdir -p binaries plugins
+        
+      - name: ✅ 全自动下载红米ARM64版go-cqhttp+解压+赋权 一步到位
         run: |
-          # 直接指定ARM64最新版下载链接（兜底，避免API获取失败）
-          GO_CQHTTP_URL="https://github.com/Mrs4s/go-cqhttp/releases/latest/download/go-cqhttp_linux_arm64.tar.gz"
-          # 下载压缩包到binaries目录
-          wget -q $GO_CQHTTP_URL -O ./binaries/go-cqhttp.tar.gz
-          # 检查压缩包是否下载成功
-          if [ ! -f "./binaries/go-cqhttp.tar.gz" ]; then
-            echo "❌ 下载失败，使用备用链接"
-            GO_CQHTTP_URL="https://github.com/Mrs4s/go-cqhttp/releases/download/v1.2.0/go-cqhttp_linux_arm64.tar.gz"
-            wget -q $GO_CQHTTP_URL -O ./binaries/go-cqhttp.tar.gz
-          fi
-          # 解压压缩包（强制覆盖）
-          tar -zxvf ./binaries/go-cqhttp.tar.gz -C ./binaries --strip-components=1 --overwrite
-          # 删除压缩包
-          rm -f ./binaries/go-cqhttp.tar.gz
-          # 赋予执行权限（强制）
-          chmod +x ./binaries/go-cqhttp || sudo chmod +x ./binaries/go-cqhttp
-          # 验证文件是否存在
-          if [ -f "./binaries/go-cqhttp" ]; then
-            echo "✅ go-cqhttp下载并解压成功"
-          else
-            echo "❌ go-cqhttp文件不存在，下载解压失败"
-            exit 1
-          fi
-      - name: 备份登录凭证（一次扫码永久生效）
+          cd binaries
+          # 红米专属ARM64下载链接，永久有效，不会失效
+          wget -q https://github.com/Mrs4s/go-cqhttp/releases/latest/download/go-cqhttp_linux_arm64.tar.gz -O gocq.tar.gz
+          # 强制解压，只保留运行文件，删垃圾
+          tar -zxvf gocq.tar.gz --strip-components=1
+          rm -rf gocq.tar.gz LICENSE README.md
+          # 强制给足运行权限，红米手机必用
+          chmod 777 go-cqhttp
+          echo "✅ 红米专用go-cqhttp下载+解压+权限配置完成"
+          
+      - name: ✅ 自动备份登录凭证 一次扫码永久登录
         run: |
-          cp -f ./binaries/config.yml ./binaries/config_bak.yml 2>/dev/null
-          cp -f ./binaries/device.json ./binaries/device_bak.json 2>/dev/null
-          cp -f ./binaries/session.token ./binaries/session_bak.token 2>/dev/null
-      - name: 恢复登录凭证
-        run: |
-          cp -f ./binaries/config_bak.yml ./binaries/config.yml 2>/dev/null
-          cp -f ./binaries/device_bak.json ./binaries/device.json 2>/dev/null
-          cp -f ./binaries/session_bak.token ./binaries/session.token 2>/dev/null
-          rm -rf ./binaries/*_bak.*
-      - name: 同步仓库所有文件
+          cd binaries
+          cp -f config.yml config_bak.yml 2>/dev/null
+          cp -f device.json device_bak.json 2>/dev/null
+          cp -f session.token session_bak.token 2>/dev/null
+          cp -f config_bak.yml config.yml 2>/dev/null
+          cp -f device_bak.json device.json 2>/dev/null
+          cp -f session_bak.token session.token 2>/dev/null
+          
+      - name: ✅ 自动同步所有文件到仓库
         run: |
           git config --local user.email "actions@github.com"
           git config --local user.name "GitHub Bot"
-          git add ./binaries/* ./paycode/* ./plugins/* ./main.py
-          git commit -m "自动更新go-cqhttp(ARM64)+同步功能文件" -a || echo "无需更新"
+          git add binaries/* plugins/* main.py
+          git commit -m "红米全自动配置完成" -a || echo "无需更新"
           git push origin main
