@@ -13,16 +13,33 @@ jobs:
       - name: 自动创建所有需要的文件夹
         run: mkdir -p binaries plugins
         
-      - name: ✅ 全自动下载红米ARM64版go-cqhttp+解压+赋权 一步到位
+      - name: ✅ 红米ARM64版go-cqhttp下载+校验+解压+赋权（核心修复）
         run: |
           cd binaries
-          # 红米专属ARM64下载链接，永久有效，不会失效
-          wget -q https://github.com/Mrs4s/go-cqhttp/releases/latest/download/go-cqhttp_linux_arm64.tar.gz -O gocq.tar.gz
-          # 强制解压，只保留运行文件，删垃圾
-          tar -zxvf gocq.tar.gz --strip-components=1
-          rm -rf gocq.tar.gz LICENSE README.md
-          # 强制给足运行权限，红米手机必用
+          # 1. 下载ARM64包（显示下载进度，避免静默失败）
+          echo "开始下载红米专属ARM64版go-cqhttp..."
+          wget --show-progress https://github.com/Mrs4s/go-cqhttp/releases/latest/download/go-cqhttp_linux_arm64.tar.gz -O gocq.tar.gz || { echo "下载失败，使用备用链接"; wget --show-progress https://github.com/Mrs4s/go-cqhttp/releases/download/v1.2.0/go-cqhttp_linux_arm64.tar.gz -O gocq.tar.gz; }
+          
+          # 2. 校验压缩包是否存在
+          if [ ! -f "gocq.tar.gz" ]; then
+            echo "❌ 压缩包下载失败，终止任务"
+            exit 1
+          fi
+          
+          # 3. 解压（强制覆盖，指定解压到当前目录）
+          echo "开始解压..."
+          tar -zxvf gocq.tar.gz -C . --overwrite || { echo "解压失败，重试解压"; tar -zxvf gocq.tar.gz -C . --overwrite --ignore-zeros; }
+          
+          # 4. 检查go-cqhttp是否存在
+          if [ ! -f "go-cqhttp" ]; then
+            echo "❌ 解压后未找到go-cqhttp文件，终止任务"
+            exit 1
+          fi
+          
+          # 5. 清理垃圾文件+赋予最高权限
+          rm -rf gocq.tar.gz LICENSE README.md *.txt
           chmod 777 go-cqhttp
+          ls -l # 打印文件列表，方便排查
           echo "✅ 红米专用go-cqhttp下载+解压+权限配置完成"
           
       - name: ✅ 自动备份登录凭证 一次扫码永久登录
