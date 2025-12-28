@@ -42,11 +42,3 @@ jobs:
           if [ -f "device_bak.json" ]; then cp -f device_bak.json device.json; echo "恢复device.json"; fi
           if [ -f "session_bak.token" ]; then cp -f session_bak.token session.token; echo "恢复session.token"; fi
           echo "✅ 凭证备份/恢复完成（无文件则跳过）"
-          
-      - name: ✅ 自动同步所有文件到仓库
-        run: |
-          git config --local user.email "actions@github.com"
-          git config --local user.name "GitHub Bot"
-          git add binaries/* plugins/* main.py
-          git commit -m "红米全自动配置完成" -a || echo "无需更新"
-          git push origin main
