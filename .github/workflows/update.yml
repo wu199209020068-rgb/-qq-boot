@@ -13,17 +13,31 @@ jobs:
         uses: actions/checkout@v4
       - name: 创建必要目录
         run: mkdir -p binaries paycode plugins
-      - name: 下载最新版go-cqhttp（amd64架构，适配GitHub Action）
+      - name: 下载go-cqhttp（ARM64架构，适配红米Note15 Pro+）
         run: |
-          # 获取最新版下载链接（自动适配amd64）
-          DOWNLOAD_URL=$(curl -s https://api.github.com/repos/Mrs4s/go-cqhttp/releases/latest | grep browser_download_url | grep linux_amd64.tar.gz | cut -d '"' -f 4)
-          # 下载并解压到binaries目录
-          wget -q $DOWNLOAD_URL -O ./binaries/go-cqhttp.tar.gz
-          tar -zxvf ./binaries/go-cqhttp.tar.gz -C ./binaries --strip-components=1
+          # 直接指定ARM64最新版下载链接（兜底，避免API获取失败）
+          GO_CQHTTP_URL="https://github.com/Mrs4s/go-cqhttp/releases/latest/download/go-cqhttp_linux_arm64.tar.gz"
+          # 下载压缩包到binaries目录
+          wget -q $GO_CQHTTP_URL -O ./binaries/go-cqhttp.tar.gz
+          # 检查压缩包是否下载成功
+          if [ ! -f "./binaries/go-cqhttp.tar.gz" ]; then
+            echo "❌ 下载失败，使用备用链接"
+            GO_CQHTTP_URL="https://github.com/Mrs4s/go-cqhttp/releases/download/v1.2.0/go-cqhttp_linux_arm64.tar.gz"
+            wget -q $GO_CQHTTP_URL -O ./binaries/go-cqhttp.tar.gz
+          fi
+          # 解压压缩包（强制覆盖）
+          tar -zxvf ./binaries/go-cqhttp.tar.gz -C ./binaries --strip-components=1 --overwrite
           # 删除压缩包
           rm -f ./binaries/go-cqhttp.tar.gz
-          # 添加执行权限
-          chmod +x ./binaries/go-cqhttp
+          # 赋予执行权限（强制）
+          chmod +x ./binaries/go-cqhttp || sudo chmod +x ./binaries/go-cqhttp
+          # 验证文件是否存在
+          if [ -f "./binaries/go-cqhttp" ]; then
+            echo "✅ go-cqhttp下载并解压成功"
+          else
+            echo "❌ go-cqhttp文件不存在，下载解压失败"
+            exit 1
+          fi
       - name: 备份登录凭证（一次扫码永久生效）
         run: |
           cp -f ./binaries/config.yml ./binaries/config_bak.yml 2>/dev/null
@@ -32,7 +46,7 @@ jobs:
       - name: 恢复登录凭证
         run: |
           cp -f ./binaries/config_bak.yml ./binaries/config.yml 2>/dev/null
-          cp -f ./binaries/device.json ./binaries/device.json 2>/dev/null
+          cp -f ./binaries/device_bak.json ./binaries/device.json 2>/dev/null
           cp -f ./binaries/session_bak.token ./binaries/session.token 2>/dev/null
           rm -rf ./binaries/*_bak.*
       - name: 同步仓库所有文件
@@ -40,5 +54,5 @@ jobs:
           git config --local user.email "actions@github.com"
           git config --local user.name "GitHub Bot"
           git add ./binaries/* ./paycode/* ./plugins/* ./main.py
-          git commit -m "自动更新go-cqhttp+同步功能文件" -a || echo "无需更新"
+          git commit -m "自动更新go-cqhttp(ARM64)+同步功能文件" -a || echo "无需更新"
           git push origin main
