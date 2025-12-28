@@ -1,0 +1,55 @@
+# 账号核心配置 - 你的QQ号：2466363558 机器人+管理员
+account:
+  uin: 2466363558
+  password: ""          # 留空=扫码登录，永不改这个！
+  protocol: 2           # 安卓协议，扫码登录专用，最稳定
+  encrypt: false
+  status: 1
+  relogin:
+    delay: 3
+    interval: 3
+    max-times: 0
+  use-sso-address: true
+
+# 权限配置 - 你是唯一超级管理员 2466363558
+permission:
+  super-users:
+    - 2466363558
+  ban-add-request: false
+
+# ✅ 你的要求：必须@机器人才触发功能，彻底防误触
+message:
+  post-format: string
+  ignore-invalid-cqcode: true
+  force-fragment: false
+  fix-url: true
+  report-self-message: false
+  remove-reply-at: false
+  extra-reply-data: false
+  at-user-format: "{nickname}"
+
+# 永久登录+自动重连配置，永不掉线
+default-middlewares: &default
+  - access-token: ""
+  - rate-limit:
+      enabled: false
+  - anti-flood:
+      enabled: false
+  - cache:
+      enabled: true
+
+servers:
+  - ws-reverse:
+      universal: ws://127.0.0.1:8080/onebot/v11/ws
+      reconnect-interval: 3000
+      middlewares:
+        <<: *default
+
+# 自动保存登录状态，无冗余日志
+other:
+  log-level: info
+  log-color: true
+  debug: false
+  cache-dir: ./cache
+  data-dir: ./data
+  temp-dir: ./temp
